@@ -1,0 +1,140 @@
+.student-doc-page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 12mm 14mm;
+    background: #ffffff;
+    color: #000000;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 17px;
+    line-height: 1.35;
+    box-sizing: border-box;
+  }
+  
+  .student-doc-toolbar {
+    width: 210mm;
+    margin: 16px auto;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  
+  .student-doc-header {
+    text-align: center;
+    font-weight: 700;
+  }
+  
+  .student-doc-header .nation {
+    font-size: 17px;
+    text-transform: uppercase;
+  }
+  
+  .student-doc-header .slogan {
+    font-size: 16px;
+    text-decoration: underline;
+    margin-top: 2px;
+  }
+  
+  .student-doc-title {
+    text-align: center;
+    font-size: 19px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-top: 20px;
+    margin-bottom: 38px;
+  }
+  
+  .student-doc-body {
+    position: relative;
+  }
+  
+  .student-doc-photo {
+    position: absolute;
+    left: 0;
+    top: -71px;
+    width: 30mm;
+    height: 40mm;
+    object-fit: cover;
+    object-position: center;
+    border: 1px solid #000;
+    background: #fff;
+  }
+  
+  .student-doc-line {
+    margin-bottom: 7px;
+    text-align: justify;
+  }
+  
+  .student-doc-indent {
+    text-indent: 20px;
+  }
+  
+  .student-doc-checkbox {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    border: 1px solid #000;
+    margin: 0 20px 0 8px;
+    vertical-align: middle;
+  }
+  
+  .student-doc-sign-area {
+    margin-top: 28px;
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .student-doc-sign-box {
+    width: 85mm;
+    text-align: center;
+  }
+  
+  .student-doc-sign-date {
+    font-style: italic;
+  }
+  
+  .student-doc-sign-title {
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  
+  .student-doc-sign-note {
+    font-size: 13px;
+    font-style: italic;
+  }
+  
+  .student-doc-sign-name {
+    margin-top: 80px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  
+  .student-doc-bold {
+    font-weight: 700;
+  }
+  
+  .student-doc-center {
+    text-align: center;
+  }
+  
+  @media print {
+    body {
+      background: #ffffff !important;
+    }
+  
+    .student-doc-toolbar {
+      display: none !important;
+    }
+  
+    .student-doc-page {
+      margin: 0;
+      width: 210mm;
+      min-height: 297mm;
+      box-shadow: none;
+    }
+  
+    @page {
+      size: A4;
+      margin: 0;
+    }
+  }

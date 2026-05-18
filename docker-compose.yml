@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: qlhv-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: quanly_hocvien
+    ports:
+      - "5432:5432"
+    volumes:
+      - qlhv_postgres_data:/var/lib/postgresql/data
+    networks:
+      - qlhv-network
+
+  backend:
+    container_name: qlhv-backend
+    build:
+      context: ./quanly-hocvien-be
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./quanly-hocvien-be/.env.docker
+    ports:
+      - "3200:3200"
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      - postgres
+    networks:
+      - qlhv-network
+
+  frontend:
+    container_name: qlhv-frontend
+    build:
+      context: ./quanly-hocvien-fe
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3200
+    restart: unless-stopped
+    env_file:
+      - ./quanly-hocvien-fe/.env.docker
+    ports:
+      - "3201:3201"
+    depends_on:
+      - backend
+    networks:
+      - qlhv-network
+
+volumes:
+  qlhv_postgres_data:
+
+networks:
+  qlhv-network:
+    driver: bridge
