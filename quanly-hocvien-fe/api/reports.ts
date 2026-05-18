@@ -1,7 +1,20 @@
 import { http } from './http';
 
+export type ReportFilter = {
+  courseId?: number;
+  studentId?: number;
+};
+
+function buildReportParams(filter?: ReportFilter) {
+  return {
+    course_id: filter?.courseId,
+    student_id: filter?.studentId,
+  };
+}
+
 export type ReportSummary = {
   course_id: number | null;
+  student_id?: number | null;
   total_students: number;
   total_tuition: number;
   total_paid: number;
@@ -60,33 +73,33 @@ export type ReportExpenseDetailItem = {
 };
 
 export const reportsApi = {
-  async getSummary(courseId?: number) {
+  async getSummary(filter?: ReportFilter) {
     const res = await http.get<ReportSummary>('/reports/summary', {
-      params: courseId ? { course_id: courseId } : undefined,
+      params: buildReportParams(filter),
     });
 
     return res.data;
   },
 
-  async getPaymentStatus(courseId?: number) {
+  async getPaymentStatus(filter?: ReportFilter) {
     const res = await http.get<ReportPaymentStatusItem[]>(
       '/reports/payment-status',
       {
-        params: courseId ? { course_id: courseId } : undefined,
+        params: buildReportParams(filter),
       },
     );
 
     return res.data;
   },
 
-  async getExpenseDetails(courseId?: number) {
+  async getExpenseDetails(filter?: ReportFilter) {
     const res = await http.get<ReportExpenseDetailItem[]>(
       '/reports/expense-details',
       {
-        params: courseId ? { course_id: courseId } : undefined,
+        params: buildReportParams(filter),
       },
     );
-  
+
     return res.data;
   },
 };

@@ -1,5 +1,26 @@
 import { http } from './http';
 
+export type StudentEnrollment = {
+  id: number;
+  tuition_fee: number;
+  first_payment_expected: number;
+  second_payment_expected: number;
+  status: string;
+  note: string | null;
+  course: {
+    id: number;
+    name: string;
+    code: string | null;
+    status: string;
+    is_finance_closed?: boolean;
+  } | null;
+  tuition_payments?: {
+    id: number;
+    payment_round: number;
+    amount: number;
+  }[];
+};
+
 export type Student = {
   id: number;
   full_name: string;
@@ -15,6 +36,8 @@ export type Student = {
   previous_license_class: string | null;
   previous_license_issue_place: string | null;
   previous_license_issue_date: string | null;
+
+  enrollments?: StudentEnrollment[];
 
   created_at: string;
   updated_at: string;

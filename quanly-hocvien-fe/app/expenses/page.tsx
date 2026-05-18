@@ -33,6 +33,7 @@ import {
   ExpensePaymentMethod,
   expensesApi,
 } from "@/api/expenses";
+import PageHeader from "@/components/common/PageHeader";
 
 type ExpenseTargetType = "ENROLLMENT" | "COURSE";
 
@@ -64,10 +65,13 @@ const defaultFormValues: ExpenseFormValues = {
 
 const expenseCategories = [
   "Chi phí hồ sơ",
-  "Chi phí sân tập",
+  "Chi hoa hồng",
+  "Chi học phí",
+  "Chi giáo viên",
   "Chi phí xăng xe",
   "Chi phí khám sức khỏe",
   "Chi phí thi",
+  "Chi phí sân tập",
   "Chi phí sửa xe",
   "Chi phí đối tác 1",
   "Chi phí đối tác 2",
@@ -521,48 +525,30 @@ export default function ExpensesPage() {
 
   return (
     <Box>
-      <Stack
-        direction={{
-          xs: "column",
-          sm: "row",
-        }}
-        spacing={2}
-        justifyContent="space-between"
-        alignItems={{
-          xs: "stretch",
-          sm: "center",
-        }}
-        mb={2}
-      >
-        <Box>
-          <Typography variant="h5" fontWeight={700}>
-            Quản lý khoản chi
-          </Typography>
+      <PageHeader
+        title="Quản lý khoản chi"
+        description="Quản lý chi phí theo học viên, theo khóa học hoặc chi phí khác."
+        actions={
+          <>
+            <Button
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={loadData}
+              disabled={loading}
+            >
+              Tải lại
+            </Button>
 
-          <Typography variant="body2" color="text.secondary">
-            Quản lý chi phí theo học viên, theo khóa học hoặc chi phí khác.
-          </Typography>
-        </Box>
-
-        <Stack direction="row" spacing={1}>
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={loadData}
-            disabled={loading}
-          >
-            Tải lại
-          </Button>
-
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={openCreateDialog}
-          >
-            Thêm khoản chi
-          </Button>
-        </Stack>
-      </Stack>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={openCreateDialog}
+            >
+              Thêm khoản chi
+            </Button>
+          </>
+        }
+      />
 
       <GenericDataGrid<Expense>
         rows={expenses}

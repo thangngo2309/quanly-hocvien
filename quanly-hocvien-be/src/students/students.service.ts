@@ -44,6 +44,11 @@ export class StudentsService {
 
   findAll() {
     return this.studentRepo.find({
+      relations: [
+        'enrollments',
+        'enrollments.course',
+        'enrollments.tuition_payments',
+      ],  
       order: {
         id: 'DESC',
       },

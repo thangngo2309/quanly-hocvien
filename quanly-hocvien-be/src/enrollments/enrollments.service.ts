@@ -101,19 +101,59 @@ export class EnrollmentsService {
 
   async update(id: number, updateEnrollmentDto: UpdateEnrollmentDto) {
     const enrollment = await this.findOne(id);
-
-    Object.assign(enrollment, {
-      tuition_fee: updateEnrollmentDto.tuition_fee ?? enrollment.tuition_fee,
-      first_payment_expected:
-        updateEnrollmentDto.first_payment_expected ??
-        enrollment.first_payment_expected,
-      second_payment_expected:
-        updateEnrollmentDto.second_payment_expected ??
-        enrollment.second_payment_expected,
-      status: updateEnrollmentDto.status ?? enrollment.status,
-      note: updateEnrollmentDto.note ?? enrollment.note,
-    });
-
+  
+    if (updateEnrollmentDto.student_id) {
+      const student = await this.studentRepo.findOne({
+        where: { id: updateEnrollmentDto.student_id },
+      });
+  
+      if (!student) {
+        throw new NotFoundException('Không tìm thấy học viên');
+      }
+  
+      enrollment.student = student;
+    }
+  
+    if (updateEnrollmentDto.course_id) {
+      const course = await this.courseRepo.findOne({
+        where: { id: updateEnrollmentDto.course_id },
+      });
+  
+      if (!course) {
+        throw new NotFoundException('Không tìm thấy khóa học');
+      }
+  
+      if (course.status === 'FINISHED' || course.is_finance_closed) {
+        throw new BadRequestException(
+          'Khóa học đã chốt thu chi hoặc đã kết thúc, không thể cập nhật',
+        );
+      }
+  
+      enrollment.course = course;
+    }
+  
+    if (updateEnrollmentDto.tuition_fee !== undefined) {
+      enrollment.tuition_fee = updateEnrollmentDto.tuition_fee;
+    }
+  
+    if (updateEnrollmentDto.first_payment_expected !== undefined) {
+      enrollment.first_payment_expected =
+        updateEnrollmentDto.first_payment_expected;
+    }
+  
+    if (updateEnrollmentDto.second_payment_expected !== undefined) {
+      enrollment.second_payment_expected =
+        updateEnrollmentDto.second_payment_expected;
+    }
+  
+    if (updateEnrollmentDto.status !== undefined) {
+      enrollment.status = updateEnrollmentDto.status;
+    }
+  
+    if (updateEnrollmentDto.note !== undefined) {
+      enrollment.note = updateEnrollmentDto.note;
+    }
+  
     return this.enrollmentRepo.save(enrollment);
   }
 

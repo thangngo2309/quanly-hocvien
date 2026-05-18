@@ -32,6 +32,7 @@ import {
   TuitionPayment,
   tuitionPaymentsApi,
 } from "@/api/tuition-payments";
+import PageHeader from "@/components/common/PageHeader";
 
 type TuitionPaymentFormValues = {
   enrollment_id: string;
@@ -502,49 +503,31 @@ export default function TuitionPaymentsPage() {
 
   return (
     <Box>
-      <Stack
-        direction={{
-          xs: "column",
-          sm: "row",
-        }}
-        spacing={2}
-        justifyContent="space-between"
-        alignItems={{
-          xs: "stretch",
-          sm: "center",
-        }}
-        mb={2}
-      >
-        <Box>
-          <Typography variant="h5" fontWeight={700}>
-            Thu học phí
-          </Typography>
+      <PageHeader
+        title="Thu học phí"
+        description="Quản lý học phí học viên đóng lần 1 và lần 2."
+        actions={
+          <>
+            <Button
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={loadData}
+              disabled={loading}
+            >
+              Tải lại
+            </Button>
 
-          <Typography variant="body2" color="text.secondary">
-            Quản lý học phí học viên đóng lần 1 và lần 2.
-          </Typography>
-        </Box>
-
-        <Stack direction="row" spacing={1}>
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={loadData}
-            disabled={loading}
-          >
-            Tải lại
-          </Button>
-
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={openCreateDialog}
-          >
-            Thêm đóng học phí
-          </Button>
-        </Stack>
-      </Stack>
-
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={openCreateDialog}
+            >
+              Thêm đóng học phí
+            </Button>
+          </>
+        }
+      />
+      
       <GenericDataGrid<TuitionPayment>
         rows={payments}
         columns={columns}

@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Box,
@@ -17,20 +17,21 @@ import {
   TextField,
   Tooltip,
   Typography,
-} from '@mui/material';
-import { GridColDef } from '@mui/x-data-grid';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import RefreshIcon from '@mui/icons-material/Refresh';
+} from "@mui/material";
+import { GridColDef } from "@mui/x-data-grid";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import RefreshIcon from "@mui/icons-material/Refresh";
 
-import GenericDataGrid from '@/components/common/GenericDataGrid';
+import GenericDataGrid from "@/components/common/GenericDataGrid";
 import {
   Course,
   CourseStatus,
   CreateCoursePayload,
   coursesApi,
-} from '@/api/courses';
+} from "@/api/courses";
+import PageHeader from "@/components/common/PageHeader";
 
 type CourseFormValues = {
   name: string;
@@ -43,44 +44,44 @@ type CourseFormValues = {
 };
 
 const defaultFormValues: CourseFormValues = {
-  name: '',
-  code: '',
-  start_date: '',
-  end_date: '',
+  name: "",
+  code: "",
+  start_date: "",
+  end_date: "",
   year: new Date().getFullYear().toString(),
-  status: 'OPEN',
-  note: '',
+  status: "OPEN",
+  note: "",
 };
 
 const courseStatuses: {
   value: CourseStatus;
   label: string;
-  color: 'default' | 'primary' | 'success' | 'warning' | 'error';
+  color: "default" | "primary" | "success" | "warning" | "error";
 }[] = [
   {
-    value: 'OPEN',
-    label: 'Đang mở',
-    color: 'primary',
+    value: "OPEN",
+    label: "Đang mở",
+    color: "primary",
   },
   {
-    value: 'STUDYING',
-    label: 'Đang học',
-    color: 'warning',
+    value: "STUDYING",
+    label: "Đang học",
+    color: "warning",
   },
   {
-    value: 'FINISHED',
-    label: 'Hoàn thành',
-    color: 'success',
+    value: "FINISHED",
+    label: "Hoàn thành",
+    color: "success",
   },
   {
-    value: 'CANCELED',
-    label: 'Đã hủy',
-    color: 'error',
+    value: "CANCELED",
+    label: "Đã hủy",
+    color: "error",
   },
 ];
 
 function formatDate(value?: string | null) {
-  if (!value) return '-';
+  if (!value) return "-";
 
   const date = new Date(value);
 
@@ -88,25 +89,25 @@ function formatDate(value?: string | null) {
     return value;
   }
 
-  return new Intl.DateTimeFormat('vi-VN').format(date);
+  return new Intl.DateTimeFormat("vi-VN").format(date);
 }
 
 function toDateInputValue(value?: string | null) {
-  if (!value) return '';
+  if (!value) return "";
 
   return value.slice(0, 10);
 }
 
 function onlyNumber(value: string) {
-  return value.replace(/[^\d]/g, '');
+  return value.replace(/[^\d]/g, "");
 }
 
 function getStatusInfo(status?: string) {
   return (
-    courseStatuses.find(item => item.value === status) || {
-      value: status || 'OPEN',
-      label: status || 'Đang mở',
-      color: 'default' as const,
+    courseStatuses.find((item) => item.value === status) || {
+      value: status || "OPEN",
+      label: status || "Đang mở",
+      color: "default" as const,
     }
   );
 }
@@ -127,18 +128,18 @@ export default function CoursesPage() {
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
-    severity: 'success' | 'error';
+    severity: "success" | "error";
   }>({
     open: false,
-    message: '',
-    severity: 'success',
+    message: "",
+    severity: "success",
   });
 
   const showSuccess = useCallback((message: string) => {
     setSnackbar({
       open: true,
       message,
-      severity: 'success',
+      severity: "success",
     });
   }, []);
 
@@ -146,7 +147,7 @@ export default function CoursesPage() {
     setSnackbar({
       open: true,
       message,
-      severity: 'error',
+      severity: "error",
     });
   }, []);
 
@@ -161,7 +162,7 @@ export default function CoursesPage() {
       showError(
         error instanceof Error
           ? error.message
-          : 'Không tải được danh sách khóa học',
+          : "Không tải được danh sách khóa học"
       );
     } finally {
       setLoading(false);
@@ -183,13 +184,13 @@ export default function CoursesPage() {
     setEditingCourse(course);
 
     setFormValues({
-      name: course.name || '',
-      code: course.code || '',
+      name: course.name || "",
+      code: course.code || "",
       start_date: toDateInputValue(course.start_date),
       end_date: toDateInputValue(course.end_date),
-      year: course.year ? String(course.year) : '',
-      status: course.status || 'OPEN',
-      note: course.note || '',
+      year: course.year ? String(course.year) : "",
+      status: course.status || "OPEN",
+      note: course.note || "",
     });
 
     setFormError(null);
@@ -210,9 +211,9 @@ export default function CoursesPage() {
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
 
-      setFormValues(prev => ({
+      setFormValues((prev) => ({
         ...prev,
-        [field]: field === 'year' ? onlyNumber(value) : value,
+        [field]: field === "year" ? onlyNumber(value) : value,
       }));
 
       setFormError(null);
@@ -224,8 +225,8 @@ export default function CoursesPage() {
     const year = formValues.year
       ? Number(formValues.year)
       : startDate
-        ? new Date(startDate).getFullYear()
-        : null;
+      ? new Date(startDate).getFullYear()
+      : null;
 
     return {
       name: formValues.name.trim(),
@@ -233,7 +234,7 @@ export default function CoursesPage() {
       start_date: startDate,
       end_date: formValues.end_date || null,
       year,
-      status: formValues.status || 'OPEN',
+      status: formValues.status || "OPEN",
       note: formValues.note.trim() || null,
     };
   };
@@ -242,7 +243,7 @@ export default function CoursesPage() {
     const payload = buildPayload();
 
     if (!payload.name) {
-      setFormError('Vui lòng nhập tên khóa học');
+      setFormError("Vui lòng nhập tên khóa học");
       return;
     }
 
@@ -252,7 +253,7 @@ export default function CoursesPage() {
       new Date(payload.end_date).getTime() <
         new Date(payload.start_date).getTime()
     ) {
-      setFormError('Ngày kết thúc không được nhỏ hơn ngày bắt đầu');
+      setFormError("Ngày kết thúc không được nhỏ hơn ngày bắt đầu");
       return;
     }
 
@@ -262,10 +263,10 @@ export default function CoursesPage() {
 
       if (editingCourse) {
         await coursesApi.update(editingCourse.id, payload);
-        showSuccess('Cập nhật khóa học thành công');
+        showSuccess("Cập nhật khóa học thành công");
       } else {
         await coursesApi.create(payload);
-        showSuccess('Thêm khóa học thành công');
+        showSuccess("Thêm khóa học thành công");
       }
 
       setDialogOpen(false);
@@ -276,7 +277,7 @@ export default function CoursesPage() {
       await loadCourses();
     } catch (error) {
       setFormError(
-        error instanceof Error ? error.message : 'Không lưu được khóa học',
+        error instanceof Error ? error.message : "Không lưu được khóa học"
       );
     } finally {
       setSubmitting(false);
@@ -286,7 +287,7 @@ export default function CoursesPage() {
   const handleDelete = useCallback(
     async (course: Course) => {
       const confirmed = window.confirm(
-        `Anh có chắc muốn xóa khóa học "${course.name}" không?`,
+        `Anh có chắc muốn xóa khóa học "${course.name}" không?`
       );
 
       if (!confirmed) return;
@@ -296,105 +297,107 @@ export default function CoursesPage() {
 
         await coursesApi.remove(course.id);
 
-        showSuccess('Xóa khóa học thành công');
+        showSuccess("Xóa khóa học thành công");
 
         await loadCourses();
       } catch (error) {
         showError(
-          error instanceof Error ? error.message : 'Không xóa được khóa học',
+          error instanceof Error ? error.message : "Không xóa được khóa học"
         );
       } finally {
         setLoading(false);
       }
     },
-    [loadCourses, showError, showSuccess],
+    [loadCourses, showError, showSuccess]
   );
 
   const handleCloseFinance = useCallback(
     async (course: Course) => {
       const confirmed = window.confirm(
-        `Anh có chắc muốn chốt thu chi khóa "${course.name}" không? Sau khi chốt sẽ không thể thêm thu/chi cho khóa này.`,
+        `Anh có chắc muốn chốt thu chi khóa "${course.name}" không? Sau khi chốt sẽ không thể thêm thu/chi cho khóa này.`
       );
-  
+
       if (!confirmed) return;
-  
+
       try {
         setLoading(true);
         await coursesApi.closeFinance(course.id);
-        showSuccess('Chốt thu chi khóa học thành công');
+        showSuccess("Chốt thu chi khóa học thành công");
         await loadCourses();
       } catch (error) {
         showError(
-          error instanceof Error ? error.message : 'Không chốt được thu chi',
+          error instanceof Error ? error.message : "Không chốt được thu chi"
         );
       } finally {
         setLoading(false);
       }
     },
-    [loadCourses, showError, showSuccess],
+    [loadCourses, showError, showSuccess]
   );
-  
+
   const handleFinishCourse = useCallback(
     async (course: Course) => {
       const confirmed = window.confirm(
-        `Anh có chắc muốn kết thúc khóa "${course.name}" không? Sau khi kết thúc sẽ không thể thêm học viên, thu học phí hoặc khoản chi.`,
+        `Anh có chắc muốn kết thúc khóa "${course.name}" không? Sau khi kết thúc sẽ không thể thêm học viên, thu học phí hoặc khoản chi.`
       );
-  
+
       if (!confirmed) return;
-  
+
       try {
         setLoading(true);
         await coursesApi.finishCourse(course.id);
-        showSuccess('Kết thúc khóa học thành công');
+        showSuccess("Kết thúc khóa học thành công");
         await loadCourses();
       } catch (error) {
         showError(
-          error instanceof Error ? error.message : 'Không kết thúc được khóa học',
+          error instanceof Error
+            ? error.message
+            : "Không kết thúc được khóa học"
         );
       } finally {
         setLoading(false);
       }
     },
-    [loadCourses, showError, showSuccess],
+    [loadCourses, showError, showSuccess]
   );
 
   const columns = useMemo<GridColDef<Course>[]>(
     () => [
       {
-        field: 'name',
-        headerName: 'Tên khóa học',
+        field: "name",
+        headerName: "Tên khóa học",
         flex: 1,
         minWidth: 260,
       },
       {
-        field: 'code',
-        headerName: 'Mã khóa',
+        field: "code",
+        headerName: "Mã khóa",
         width: 150,
-        renderCell: params => params.row.code || '-',
+        renderCell: (params) => params.row.code || "-",
       },
       {
-        field: 'start_date',
-        headerName: 'Ngày bắt đầu',
+        field: "start_date",
+        headerName: "Ngày bắt đầu",
         width: 140,
-        renderCell: params => formatDate(params.row.start_date),
+        renderCell: (params) => formatDate(params.row.start_date),
       },
       {
-        field: 'end_date',
-        headerName: 'Ngày kết thúc',
+        field: "end_date",
+        headerName: "Ngày kết thúc",
         width: 140,
-        renderCell: params => formatDate(params.row.end_date),
+        renderCell: (params) => formatDate(params.row.end_date),
       },
       {
-        field: 'year',
-        headerName: 'Năm',
+        field: "year",
+        headerName: "Năm",
         width: 100,
-        renderCell: params => params.row.year || '-',
+        renderCell: (params) => params.row.year || "-",
       },
       {
-        field: 'status',
-        headerName: 'Trạng thái',
+        field: "status",
+        headerName: "Trạng thái",
         width: 140,
-        renderCell: params => {
+        renderCell: (params) => {
           const statusInfo = getStatusInfo(params.row.status);
 
           return (
@@ -408,23 +411,25 @@ export default function CoursesPage() {
         },
       },
       {
-        field: 'created_at',
-        headerName: 'Ngày tạo',
+        field: "created_at",
+        headerName: "Ngày tạo",
         width: 150,
-        renderCell: params => formatDate(params.row.created_at),
+        renderCell: (params) => formatDate(params.row.created_at),
       },
       {
-        field: 'actions',
-        headerName: 'Thao tác',
+        field: "actions",
+        headerName: "Thao tác",
         width: 340,
         sortable: false,
         filterable: false,
-        renderCell: params => (
+        renderCell: (params) => (
           <Stack direction="row" spacing={0.5}>
             <Button
               size="small"
               variant="outlined"
-              disabled={params.row.is_finance_closed || params.row.status === 'FINISHED'}
+              disabled={
+                params.row.is_finance_closed || params.row.status === "FINISHED"
+              }
               onClick={() => handleCloseFinance(params.row)}
             >
               Chốt thu chi
@@ -434,7 +439,10 @@ export default function CoursesPage() {
               size="small"
               variant="contained"
               color="success"
-              disabled={!params.row.is_finance_closed || params.row.status === 'FINISHED'}
+              disabled={
+                !params.row.is_finance_closed ||
+                params.row.status === "FINISHED"
+              }
               onClick={() => handleFinishCourse(params.row)}
             >
               Kết thúc
@@ -462,60 +470,36 @@ export default function CoursesPage() {
         ),
       },
     ],
-    [
-      handleDelete, 
-      openEditDialog,
-      handleCloseFinance,
-      handleFinishCourse,
-    ],
+    [handleDelete, openEditDialog, handleCloseFinance, handleFinishCourse]
   );
 
   return (
     <Box>
-      <Stack
-        direction={{
-          xs: 'column',
-          sm: 'row',
-        }}
-        spacing={2}
-        justifyContent="space-between"
-        alignItems={{
-          xs: 'stretch',
-          sm: 'center',
-        }}
-        mb={2}
-      >
-        <Box>
-          <Typography variant="h5" fontWeight={700}>
-            Quản lý khóa học
-          </Typography>
+      <PageHeader
+        title="Quản lý khóa học"
+        description="Tạo khóa học, cập nhật thời gian và trạng thái khóa học. Học phí sẽ
+        được nhập riêng khi thêm học viên vào khóa."
+        actions={
+          <>
+            <Button
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={loadCourses}
+              disabled={loading}
+            >
+              Tải lại
+            </Button>
 
-          <Typography variant="body2" color="text.secondary">
-            Tạo khóa học, cập nhật thời gian và trạng thái khóa học. Học phí sẽ
-            được nhập riêng khi thêm học viên vào khóa.
-          </Typography>
-        </Box>
-
-        <Stack direction="row" spacing={1}>
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={loadCourses}
-            disabled={loading}
-          >
-            Tải lại
-          </Button>
-
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={openCreateDialog}
-          >
-            Thêm khóa học
-          </Button>
-        </Stack>
-      </Stack>
-
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={openCreateDialog}
+            >
+              Thêm khóa học
+            </Button>
+          </>
+        }
+      />
       <GenericDataGrid<Course>
         rows={courses}
         columns={columns}
@@ -523,14 +507,9 @@ export default function CoursesPage() {
         height={620}
       />
 
-      <Dialog
-        open={dialogOpen}
-        onClose={closeDialog}
-        fullWidth
-        maxWidth="sm"
-      >
+      <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm">
         <DialogTitle>
-          {editingCourse ? 'Cập nhật khóa học' : 'Thêm khóa học'}
+          {editingCourse ? "Cập nhật khóa học" : "Thêm khóa học"}
         </DialogTitle>
 
         <DialogContent>
@@ -540,7 +519,7 @@ export default function CoursesPage() {
             <TextField
               label="Tên khóa học"
               value={formValues.name}
-              onChange={handleChange('name')}
+              onChange={handleChange("name")}
               fullWidth
               required
               autoFocus
@@ -550,15 +529,15 @@ export default function CoursesPage() {
             <TextField
               label="Mã khóa"
               value={formValues.code}
-              onChange={handleChange('code')}
+              onChange={handleChange("code")}
               fullWidth
               placeholder="Ví dụ: KHOA-05-2026"
             />
 
             <Stack
               direction={{
-                xs: 'column',
-                sm: 'row',
+                xs: "column",
+                sm: "row",
               }}
               spacing={2}
             >
@@ -566,7 +545,7 @@ export default function CoursesPage() {
                 label="Ngày bắt đầu"
                 type="date"
                 value={formValues.start_date}
-                onChange={handleChange('start_date')}
+                onChange={handleChange("start_date")}
                 fullWidth
                 slotProps={{
                   inputLabel: {
@@ -579,7 +558,7 @@ export default function CoursesPage() {
                 label="Ngày kết thúc"
                 type="date"
                 value={formValues.end_date}
-                onChange={handleChange('end_date')}
+                onChange={handleChange("end_date")}
                 fullWidth
                 slotProps={{
                   inputLabel: {
@@ -592,7 +571,7 @@ export default function CoursesPage() {
             <TextField
               label="Năm"
               value={formValues.year}
-              onChange={handleChange('year')}
+              onChange={handleChange("year")}
               fullWidth
               placeholder="2026"
             />
@@ -601,10 +580,10 @@ export default function CoursesPage() {
               select
               label="Trạng thái"
               value={formValues.status}
-              onChange={handleChange('status')}
+              onChange={handleChange("status")}
               fullWidth
             >
-              {courseStatuses.map(status => (
+              {courseStatuses.map((status) => (
                 <MenuItem key={status.value} value={status.value}>
                   {status.label}
                 </MenuItem>
@@ -614,7 +593,7 @@ export default function CoursesPage() {
             <TextField
               label="Ghi chú"
               value={formValues.note}
-              onChange={handleChange('note')}
+              onChange={handleChange("note")}
               fullWidth
               multiline
               minRows={3}
@@ -632,7 +611,7 @@ export default function CoursesPage() {
             onClick={handleSubmit}
             disabled={submitting}
           >
-            {submitting ? 'Đang lưu...' : 'Lưu'}
+            {submitting ? "Đang lưu..." : "Lưu"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -641,21 +620,21 @@ export default function CoursesPage() {
         open={snackbar.open}
         autoHideDuration={3000}
         onClose={() =>
-          setSnackbar(prev => ({
+          setSnackbar((prev) => ({
             ...prev,
             open: false,
           }))
         }
         anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
+          vertical: "bottom",
+          horizontal: "right",
         }}
       >
         <Alert
           severity={snackbar.severity}
           variant="filled"
           onClose={() =>
-            setSnackbar(prev => ({
+            setSnackbar((prev) => ({
               ...prev,
               open: false,
             }))

@@ -16,7 +16,6 @@ import {
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import SchoolIcon from '@mui/icons-material/School';
 import GroupsIcon from '@mui/icons-material/Groups';
-import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import BarChartIcon from '@mui/icons-material/BarChart';
@@ -40,11 +39,6 @@ const menus = [
     label: 'Học viên',
     href: '/students',
     icon: <GroupsIcon />,
-  },
-  {
-    label: 'Học viên trong khóa',
-    href: '/enrollments',
-    icon: <AssignmentIndIcon />,
   },
   {
     label: 'Thu học phí',

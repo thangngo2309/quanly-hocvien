@@ -26,7 +26,10 @@ import {
   reportsApi,
 } from "@/api/reports";
 import { formatDate } from "@/components/student-documents/StudentDocumentUtils";
-import DownloadIcon from '@mui/icons-material/Download';
+import DownloadIcon from "@mui/icons-material/Download";
+import PageHeader from "@/components/common/PageHeader";
+import { Student, studentsApi } from "@/api/students";
+import ExcelJS from "exceljs";
 
 function formatCurrency(value?: number | string | null) {
   const amount = Number(value || 0);
@@ -120,8 +123,14 @@ function SummaryCard({
 }
 
 export default function ReportsPage() {
+  type ReportMode = "COURSE" | "STUDENT";
+
+  const [reportMode, setReportMode] = useState<ReportMode>("COURSE");
   const [courses, setCourses] = useState<Course[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+
   const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [selectedStudentId, setSelectedStudentId] = useState("");
 
   const [summary, setSummary] = useState<ReportSummary | null>(null);
   const [paymentStatusRows, setPaymentStatusRows] = useState<
@@ -156,13 +165,22 @@ export default function ReportsPage() {
     try {
       setLoading(true);
 
-      const courseId = selectedCourseId ? Number(selectedCourseId) : undefined;
+      const filter =
+        reportMode === "COURSE"
+          ? {
+              courseId: selectedCourseId ? Number(selectedCourseId) : undefined,
+            }
+          : {
+              studentId: selectedStudentId
+                ? Number(selectedStudentId)
+                : undefined,
+            };
 
       const [summaryData, paymentStatusData, expenseDetailData] =
         await Promise.all([
-          reportsApi.getSummary(courseId),
-          reportsApi.getPaymentStatus(courseId),
-          reportsApi.getExpenseDetails(courseId),
+          reportsApi.getSummary(filter),
+          reportsApi.getPaymentStatus(filter),
+          reportsApi.getExpenseDetails(filter),
         ]);
 
       setSummary(summaryData);
@@ -175,20 +193,22 @@ export default function ReportsPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedCourseId, showError]);
+  }, [reportMode, selectedCourseId, selectedStudentId, showError]);
 
   const loadInitialData = useCallback(async () => {
     try {
       setLoading(true);
 
-      const courseData = await coursesApi.findAll();
+      const [courseData, studentData] = await Promise.all([
+        coursesApi.findAll(),
+        studentsApi.findAll(),
+      ]);
 
       setCourses(courseData);
+      setStudents(studentData);
     } catch (error) {
       showError(
-        error instanceof Error
-          ? error.message
-          : "Không tải được danh sách khóa học"
+        error instanceof Error ? error.message : "Không tải được dữ liệu bộ lọc"
       );
     } finally {
       setLoading(false);
@@ -624,42 +644,367 @@ export default function ReportsPage() {
     });
   };
 
+  const expenseReceiptCategories = [
+    "Chi giáo viên",
+    "Chi phí đối tác 1",
+    "Chi phí đối tác 2",
+  ];
+
+  const normalizeSheetName = (name: string) => {
+    return name.replace(/[\\/*?:[\]]/g, "").slice(0, 31);
+  };
+
+  const safeFileName = (name: string) => {
+    return name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[\\/:*?"<>|]/g, "")
+      .replace(/\s+/g, "-")
+      .toLowerCase();
+  };
+
+  const getPaymentMethodLabel = (method?: string | null) => {
+    if (method === "CASH") return "Tiền mặt";
+    if (method === "BANK_TRANSFER") return "Chuyển khoản";
+    return "";
+  };
+
+  const exportExpenseReceiptWorkbook = async () => {
+    const filteredExpenses = expenseDetailRows.filter((item) =>
+      expenseReceiptCategories.includes(item.category_name)
+    );
+
+    if (!filteredExpenses.length) {
+      setSnackbar({
+        open: true,
+        message:
+          "Không có khoản chi thuộc Chi giáo viên, Chi phí đối tác 1 hoặc Chi phí đối tác 2",
+        severity: "error",
+      });
+      return;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+
+    workbook.creator = "Quản lý học viên";
+    workbook.created = new Date();
+
+    expenseReceiptCategories.forEach((categoryName) => {
+      const rows = filteredExpenses.filter(
+        (item) => item.category_name === categoryName
+      );
+
+      const worksheet = workbook.addWorksheet(
+        normalizeSheetName(categoryName),
+        {
+          pageSetup: {
+            paperSize: 9,
+            orientation: "landscape",
+            fitToPage: true,
+            fitToWidth: 1,
+            fitToHeight: 0,
+            margins: {
+              left: 0.3,
+              right: 0.3,
+              top: 0.5,
+              bottom: 0.5,
+              header: 0.2,
+              footer: 0.2,
+            },
+          },
+        }
+      );
+
+      worksheet.mergeCells("A1:K1");
+      worksheet.getCell("A1").value = "BẢNG KÊ PHIẾU CHI";
+      worksheet.getCell("A1").font = {
+        name: "Times New Roman",
+        size: 16,
+        bold: true,
+      };
+      worksheet.getCell("A1").alignment = {
+        horizontal: "center",
+        vertical: "middle",
+      };
+
+      worksheet.mergeCells("A2:K2");
+      worksheet.getCell("A2").value = categoryName.toUpperCase();
+      worksheet.getCell("A2").font = {
+        name: "Times New Roman",
+        size: 14,
+        bold: true,
+      };
+      worksheet.getCell("A2").alignment = {
+        horizontal: "center",
+        vertical: "middle",
+      };
+
+      const selectedFilterName =
+        reportMode === "COURSE"
+          ? selectedCourse?.name || "Tất cả khóa học"
+          : students.find((student) => student.id === Number(selectedStudentId))
+              ?.full_name || "Tất cả học viên";
+
+      worksheet.mergeCells("A3:K3");
+      worksheet.getCell("A3").value =
+        reportMode === "COURSE"
+          ? `Khóa học: ${selectedFilterName}`
+          : `Học viên: ${selectedFilterName}`;
+      worksheet.getCell("A3").font = {
+        name: "Times New Roman",
+        size: 12,
+        italic: true,
+      };
+      worksheet.getCell("A3").alignment = {
+        horizontal: "center",
+        vertical: "middle",
+      };
+
+      worksheet.addRow([]);
+
+      const headerRow = worksheet.addRow([
+        "STT",
+        "Ngày chi",
+        "Loại chi phí",
+        "Học viên",
+        "Số điện thoại",
+        "Khóa học",
+        "Người nhận tiền",
+        "Số tiền",
+        "Phương thức",
+        "Ghi chú",
+        "Ký nhận",
+      ]);
+
+      headerRow.eachCell((cell: any) => {
+        cell.font = {
+          name: "Times New Roman",
+          size: 12,
+          bold: true,
+        };
+        cell.alignment = {
+          horizontal: "center",
+          vertical: "middle",
+          wrapText: true,
+        };
+        cell.border = {
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
+        };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFE5E7EB" },
+        };
+      });
+
+      let totalAmount = 0;
+
+      rows.forEach((item, index) => {
+        const amount = Number(item.amount || 0);
+        totalAmount += amount;
+
+        const row = worksheet.addRow([
+          index + 1,
+          formatDate(item.expense_date),
+          item.category_name || "",
+          item.student?.full_name || "",
+          item.student?.phone || "",
+          item.course?.name || "",
+          item.receiver_name || "",
+          amount,
+          getPaymentMethodLabel(item.payment_method),
+          item.note || "",
+          "",
+        ]);
+
+        row.eachCell((cell: any) => {
+          cell.font = {
+            name: "Times New Roman",
+            size: 12,
+          };
+          cell.alignment = {
+            vertical: "middle",
+            wrapText: true,
+          };
+          cell.border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" },
+          };
+        });
+
+        row.getCell(1).alignment = {
+          horizontal: "center",
+          vertical: "middle",
+        };
+
+        row.getCell(8).numFmt = "#,##0";
+        row.getCell(8).alignment = {
+          horizontal: "right",
+          vertical: "middle",
+        };
+
+        row.height = 28;
+      });
+
+      const totalRow = worksheet.addRow([
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "TỔNG CỘNG",
+        totalAmount,
+        "",
+        "",
+        "",
+      ]);
+
+      totalRow.eachCell((cell: any) => {
+        cell.font = {
+          name: "Times New Roman",
+          size: 12,
+          bold: true,
+        };
+        cell.border = {
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
+        };
+        cell.alignment = {
+          vertical: "middle",
+        };
+      });
+
+      totalRow.getCell(7).alignment = {
+        horizontal: "center",
+        vertical: "middle",
+      };
+
+      totalRow.getCell(8).numFmt = "#,##0";
+      totalRow.getCell(8).alignment = {
+        horizontal: "right",
+        vertical: "middle",
+      };
+
+      worksheet.addRow([]);
+
+      const signStartRow = worksheet.rowCount + 1;
+
+      worksheet.mergeCells(`H${signStartRow}:K${signStartRow}`);
+      worksheet.getCell(`H${signStartRow}`).value =
+        "Ngày ..... tháng ..... năm ........";
+      worksheet.getCell(`H${signStartRow}`).alignment = {
+        horizontal: "center",
+      };
+      worksheet.getCell(`H${signStartRow}`).font = {
+        name: "Times New Roman",
+        size: 12,
+        italic: true,
+      };
+
+      worksheet.mergeCells(`B${signStartRow + 1}:D${signStartRow + 1}`);
+      worksheet.getCell(`B${signStartRow + 1}`).value = "NGƯỜI LẬP";
+      worksheet.getCell(`B${signStartRow + 1}`).font = {
+        name: "Times New Roman",
+        size: 12,
+        bold: true,
+      };
+      worksheet.getCell(`B${signStartRow + 1}`).alignment = {
+        horizontal: "center",
+      };
+
+      worksheet.mergeCells(`H${signStartRow + 1}:K${signStartRow + 1}`);
+      worksheet.getCell(`H${signStartRow + 1}`).value = "NGƯỜI DUYỆT";
+      worksheet.getCell(`H${signStartRow + 1}`).font = {
+        name: "Times New Roman",
+        size: 12,
+        bold: true,
+      };
+      worksheet.getCell(`H${signStartRow + 1}`).alignment = {
+        horizontal: "center",
+      };
+
+      worksheet.columns = [
+        { width: 6 },
+        { width: 13 },
+        { width: 22 },
+        { width: 24 },
+        { width: 16 },
+        { width: 28 },
+        { width: 22 },
+        { width: 15 },
+        { width: 15 },
+        { width: 28 },
+        { width: 20 },
+      ];
+
+      worksheet.getColumn(8).numFmt = "#,##0";
+
+      worksheet.views = [
+        {
+          state: "frozen",
+          ySplit: 5,
+        },
+      ];
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    const filterName =
+      reportMode === "COURSE"
+        ? selectedCourse?.name || "tat-ca-khoa"
+        : students.find((student) => student.id === Number(selectedStudentId))
+            ?.full_name || "tat-ca-hoc-vien";
+
+    const fileName = `phieu-chi-${safeFileName(filterName)}.xlsx`;
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+
+    setSnackbar({
+      open: true,
+      message: "Export phiếu chi Excel thành công",
+      severity: "success",
+    });
+  };
+
   return (
     <Box>
-      <Stack
-        direction={{
-          xs: "column",
-          sm: "row",
-        }}
-        spacing={2}
-        justifyContent="space-between"
-        alignItems={{
-          xs: "stretch",
-          sm: "center",
-        }}
-        mb={2}
-      >
-        <Box>
-          <Typography variant="h5" fontWeight={700}>
-            Báo cáo tổng hợp
-          </Typography>
-
-          <Typography variant="body2" color="text.secondary">
-            Tổng hợp học phí, khoản chi, công nợ và lợi nhuận tạm tính.
-          </Typography>
-        </Box>
-
-        <Stack direction="row" spacing={1}>
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={loadReports}
-            disabled={loading}
-          >
-            Tải lại
-          </Button>
-        </Stack>
-      </Stack>
+      <PageHeader
+        title="Báo cáo tổng hợp"
+        description="Tổng hợp học phí, khoản chi, công nợ và lợi nhuận tạm tính."
+        actions={
+          <>
+            <Button
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={loadReports}
+              disabled={loading}
+            >
+              Tải lại
+            </Button>
+          </>
+        }
+      />
 
       <Card sx={{ mb: 2 }}>
         <CardContent>
@@ -676,26 +1021,62 @@ export default function ReportsPage() {
           >
             <TextField
               select
-              label="Lọc theo khóa học"
-              value={selectedCourseId}
-              onChange={(event) => setSelectedCourseId(event.target.value)}
-              fullWidth
-            >
-              <MenuItem value="">Tất cả khóa học</MenuItem>
+              label="Kiểu báo cáo"
+              value={reportMode}
+              onChange={(event) => {
+                const value = event.target.value as ReportMode;
 
-              {courses.map((course) => (
-                <MenuItem key={course.id} value={String(course.id)}>
-                  {course.name}
-                  {course.code ? ` - ${course.code}` : ""}
-                </MenuItem>
-              ))}
+                setReportMode(value);
+                setSelectedCourseId("");
+                setSelectedStudentId("");
+              }}
+              sx={{
+                minWidth: {
+                  xs: "100%",
+                  md: 220,
+                },
+              }}
+            >
+              <MenuItem value="COURSE">Theo khóa học</MenuItem>
+              <MenuItem value="STUDENT">Theo học viên</MenuItem>
             </TextField>
 
-            {selectedCourse && (
-              <Alert severity="info" sx={{ width: "100%" }}>
-                Đang xem báo cáo của khóa:{" "}
-                <strong>{selectedCourse.name}</strong>
-              </Alert>
+            {reportMode === "COURSE" && (
+              <TextField
+                select
+                label="Chọn khóa học"
+                value={selectedCourseId}
+                onChange={(event) => setSelectedCourseId(event.target.value)}
+                fullWidth
+              >
+                <MenuItem value="">Tất cả khóa học</MenuItem>
+
+                {courses.map((course) => (
+                  <MenuItem key={course.id} value={String(course.id)}>
+                    {course.name}
+                    {course.code ? ` - ${course.code}` : ""}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+
+            {reportMode === "STUDENT" && (
+              <TextField
+                select
+                label="Chọn học viên"
+                value={selectedStudentId}
+                onChange={(event) => setSelectedStudentId(event.target.value)}
+                fullWidth
+              >
+                <MenuItem value="">Tất cả học viên</MenuItem>
+
+                {students.map((student) => (
+                  <MenuItem key={student.id} value={String(student.id)}>
+                    {student.full_name}
+                    {student.phone ? ` - ${student.phone}` : ""}
+                  </MenuItem>
+                ))}
+              </TextField>
             )}
           </Stack>
         </CardContent>
@@ -757,7 +1138,9 @@ export default function ReportsPage() {
 
       <Stack spacing={1} mb={2}>
         <Typography variant="h6" fontWeight={700}>
-          Chi tiết thu học phí từng học viên
+          {reportMode === "COURSE"
+            ? "Chi tiết thu học phí theo khóa học"
+            : "Chi tiết thu học phí theo học viên"}
         </Typography>
 
         <Typography variant="body2" color="text.secondary">
@@ -786,8 +1169,6 @@ export default function ReportsPage() {
           xs: "column",
           sm: "row",
         }}
-        spacing={2}
-        justifyContent="space-between"
         alignItems={{
           xs: "stretch",
           sm: "center",
@@ -796,14 +1177,17 @@ export default function ReportsPage() {
       >
         <Box>
           <Typography variant="h6" fontWeight={700}>
-            Chi tiết khoản chi
+            {reportMode === "COURSE"
+              ? "Chi tiết khoản chi của khóa học"
+              : "Chi tiết khoản chi của học viên"}
           </Typography>
-
           <Typography variant="body2" color="text.secondary">
             Bao gồm khoản chi theo học viên và khoản chi chung của khóa học.
           </Typography>
         </Box>
+      </Stack>
 
+      <Stack direction="row" spacing={1} mt={2} flexWrap="wrap" useFlexGap>
         <Button
           variant="outlined"
           startIcon={<DownloadIcon />}
@@ -811,6 +1195,15 @@ export default function ReportsPage() {
           disabled={loading || expenseDetailRows.length === 0}
         >
           Export CSV khoản chi
+        </Button>
+
+        <Button
+          variant="outlined"
+          startIcon={<DownloadIcon />}
+          onClick={exportExpenseReceiptWorkbook}
+          disabled={loading || expenseDetailRows.length === 0}
+        >
+          Export phiếu chi Excel
         </Button>
       </Stack>
 
@@ -821,25 +1214,6 @@ export default function ReportsPage() {
         height={520}
         getRowId={(row) => row.id}
       />
-
-      {/* <Stack spacing={1} mb={2}>
-        <Typography variant="h6" fontWeight={700}>
-          Trạng thái đóng học phí
-        </Typography>
-
-        <Typography variant="body2" color="text.secondary">
-          Theo dõi học viên đã đóng lần 1, lần 2, tổng đã đóng và số tiền còn
-          nợ.
-        </Typography>
-      </Stack>
-
-      <GenericDataGrid<ReportPaymentStatusItem>
-        rows={paymentStatusRows}
-        columns={columns}
-        loading={loading}
-        height={650}
-        getRowId={(row) => row.enrollment_id}
-      /> */}
 
       <Snackbar
         open={snackbar.open}
