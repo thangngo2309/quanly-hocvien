@@ -93,11 +93,23 @@ export class TuitionPaymentsService {
     return this.paymentRepo.save(payment);
   }
 
-  findAll() {
-    return this.paymentRepo.find({
-      relations: ['enrollment', 'enrollment.student', 'enrollment.course'],
-      order: { id: 'DESC' },
+  findAll(filter?: { courseId?: number }) {
+    const qb = this.paymentRepo
+    .createQueryBuilder('payment')
+    .leftJoinAndSelect('payment.enrollment', 'enrollment')
+    .leftJoinAndSelect('enrollment.student', 'student')
+    .leftJoinAndSelect('enrollment.course', 'course')
+    .orderBy('payment.payment_date', 'DESC')
+    .addOrderBy('payment.id', 'DESC');
+
+  if (filter?.courseId) {
+    qb.andWhere('course.id = :courseId', {
+      courseId: filter.courseId,
     });
+  }
+
+  return qb.getMany();
+
   }
 
   async findOne(id: number) {

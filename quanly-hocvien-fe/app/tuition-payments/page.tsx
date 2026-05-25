@@ -5,6 +5,8 @@ import {
   Alert,
   Box,
   Button,
+  Card,
+  CardContent,
   Chip,
   Dialog,
   DialogActions,
@@ -33,6 +35,7 @@ import {
   tuitionPaymentsApi,
 } from "@/api/tuition-payments";
 import PageHeader from "@/components/common/PageHeader";
+import { Course, coursesApi } from "@/api/courses";
 
 type TuitionPaymentFormValues = {
   enrollment_id: string;
@@ -154,6 +157,9 @@ export default function TuitionPaymentsPage() {
     null
   );
 
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState("");
+
   const [formValues, setFormValues] =
     useState<TuitionPaymentFormValues>(defaultFormValues);
 
@@ -189,13 +195,17 @@ export default function TuitionPaymentsPage() {
     try {
       setLoading(true);
 
-      const [paymentData, enrollmentData] = await Promise.all([
-        tuitionPaymentsApi.findAll(),
+      const [paymentData, enrollmentData, courseData] = await Promise.all([
+        tuitionPaymentsApi.findAll({
+          courseId: selectedCourseId ? Number(selectedCourseId) : undefined,
+        }),
         enrollmentsApi.findAll(),
+        coursesApi.findAll(),
       ]);
 
       setPayments(paymentData);
       setEnrollments(enrollmentData);
+      setCourses(courseData);
     } catch (error) {
       showError(
         error instanceof Error
@@ -205,7 +215,7 @@ export default function TuitionPaymentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [showError]);
+  }, [selectedCourseId, showError]);
 
   useEffect(() => {
     loadData();
@@ -527,7 +537,55 @@ export default function TuitionPaymentsPage() {
           </>
         }
       />
-      
+
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Stack
+            direction={{
+              xs: "column",
+              md: "row",
+            }}
+            spacing={2}
+            alignItems={{
+              xs: "stretch",
+              md: "center",
+            }}
+          >
+            <TextField
+              select
+              label="Lọc theo khóa học"
+              value={selectedCourseId}
+              onChange={(event) => {
+                setSelectedCourseId(event.target.value);
+              }}
+              sx={{
+                minWidth: {
+                  xs: "100%",
+                  md: 360,
+                },
+              }}
+            >
+              <MenuItem value="">Tất cả khóa học</MenuItem>
+
+              {courses.map((course) => (
+                <MenuItem key={course.id} value={String(course.id)}>
+                  {course.name}
+                  {course.code ? ` - ${course.code}` : ""}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <Button
+              variant="outlined"
+              onClick={() => setSelectedCourseId("")}
+              disabled={!selectedCourseId}
+            >
+              Xóa lọc
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
+
       <GenericDataGrid<TuitionPayment>
         rows={payments}
         columns={columns}

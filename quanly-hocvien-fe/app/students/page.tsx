@@ -6,6 +6,8 @@ import {
   Avatar,
   Box,
   Button,
+  Card,
+  CardContent,
   Chip,
   Dialog,
   DialogActions,
@@ -60,8 +62,6 @@ type StudentFormValues = {
 
   course_id: string;
   tuition_fee: string;
-  first_payment_expected: string;
-  second_payment_expected: string;
 };
 
 const defaultFormValues: StudentFormValues = {
@@ -81,8 +81,6 @@ const defaultFormValues: StudentFormValues = {
 
   course_id: "",
   tuition_fee: "",
-  first_payment_expected: "",
-  second_payment_expected: "",
 };
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
@@ -243,22 +241,7 @@ export default function StudentsPage() {
   };
 
   const [courses, setCourses] = useState<Course[]>([]);
-
-  const [enrollDialog, setEnrollDialog] = useState<{
-    open: boolean;
-    student: Student | null;
-  }>({
-    open: false,
-    student: null,
-  });
-
-  const [enrollForm, setEnrollForm] = useState({
-    course_id: "",
-    tuition_fee: "",
-    first_payment_expected: "",
-    second_payment_expected: "",
-    note: "",
-  });
+  const [selectedCourseId, setSelectedCourseId] = useState("");
 
   const loadData = useCallback(async () => {
     try {
@@ -318,12 +301,6 @@ export default function StudentsPage() {
       course_id: enrollment?.course?.id ? String(enrollment.course.id) : "",
       tuition_fee: enrollment?.tuition_fee
         ? String(enrollment.tuition_fee)
-        : "",
-      first_payment_expected: enrollment?.first_payment_expected
-        ? String(enrollment.first_payment_expected)
-        : "",
-      second_payment_expected: enrollment?.second_payment_expected
-        ? String(enrollment.second_payment_expected)
         : "",
     });
 
@@ -416,18 +393,6 @@ export default function StudentsPage() {
       }
 
       const tuitionFee = Number(formValues.tuition_fee || 0);
-      const firstExpected = formValues.first_payment_expected
-        ? Number(formValues.first_payment_expected)
-        : Math.floor(tuitionFee / 2);
-
-      const secondExpected = formValues.second_payment_expected
-        ? Number(formValues.second_payment_expected)
-        : tuitionFee - firstExpected;
-
-      if (firstExpected + secondExpected !== tuitionFee) {
-        setFormError("Tổng dự kiến lần 1 và lần 2 phải bằng học phí");
-        return;
-      }
     }
 
     try {
@@ -441,21 +406,12 @@ export default function StudentsPage() {
 
         if (formValues.course_id) {
           const tuitionFee = Number(formValues.tuition_fee || 0);
-          const firstExpected = formValues.first_payment_expected
-            ? Number(formValues.first_payment_expected)
-            : Math.floor(tuitionFee / 2);
-
-          const secondExpected = formValues.second_payment_expected
-            ? Number(formValues.second_payment_expected)
-            : tuitionFee - firstExpected;
 
           if (currentEnrollment) {
             await enrollmentsApi.update(currentEnrollment.id, {
               student_id: editingStudent.id,
               course_id: Number(formValues.course_id),
               tuition_fee: tuitionFee,
-              first_payment_expected: firstExpected,
-              second_payment_expected: secondExpected,
               status: currentEnrollment.status || "STUDYING",
               note: currentEnrollment.note || null,
             });
@@ -464,8 +420,6 @@ export default function StudentsPage() {
               student_id: editingStudent.id,
               course_id: Number(formValues.course_id),
               tuition_fee: tuitionFee,
-              first_payment_expected: firstExpected,
-              second_payment_expected: secondExpected,
               status: "STUDYING",
               note: null,
             });
@@ -478,20 +432,11 @@ export default function StudentsPage() {
 
         if (formValues.course_id) {
           const tuitionFee = Number(formValues.tuition_fee || 0);
-          const firstExpected = formValues.first_payment_expected
-            ? Number(formValues.first_payment_expected)
-            : Math.floor(tuitionFee / 2);
-
-          const secondExpected = formValues.second_payment_expected
-            ? Number(formValues.second_payment_expected)
-            : tuitionFee - firstExpected;
 
           await enrollmentsApi.create({
             student_id: createdStudent.id,
             course_id: Number(formValues.course_id),
             tuition_fee: tuitionFee,
-            first_payment_expected: firstExpected,
-            second_payment_expected: secondExpected,
             status: "STUDYING",
             note: null,
           });
@@ -513,26 +458,6 @@ export default function StudentsPage() {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleAutoSplitStudentTuition = () => {
-    const tuitionFee = Number(formValues.tuition_fee || 0);
-
-    if (tuitionFee <= 0) {
-      setFormError("Vui lòng nhập học phí trước khi tự chia");
-      return;
-    }
-
-    const firstExpected = Math.floor(tuitionFee / 2);
-    const secondExpected = tuitionFee - firstExpected;
-
-    setFormValues((prev) => ({
-      ...prev,
-      first_payment_expected: String(firstExpected),
-      second_payment_expected: String(secondExpected),
-    }));
-
-    setFormError(null);
   };
 
   const handleDelete = useCallback(
@@ -589,6 +514,24 @@ export default function StudentsPage() {
   const openTestingApplication = useCallback((student: Student) => {
     window.open(`/students/${student.id}/don-sat-hach`, "_blank");
   }, []);
+
+  const filteredStudents = useMemo(() => {
+    if (!selectedCourseId) {
+      return students;
+    }
+
+    if (selectedCourseId === "NO_COURSE") {
+      return students.filter((student) => {
+        return !student.enrollments || student.enrollments.length === 0;
+      });
+    }
+
+    return students.filter((student) => {
+      return student.enrollments?.some((enrollment) => {
+        return enrollment.course?.id === Number(selectedCourseId);
+      });
+    });
+  }, [students, selectedCourseId]);
 
   const columns = useMemo<GridColDef<Student>[]>(
     () => [
@@ -849,8 +792,57 @@ export default function StudentsPage() {
         }
       />
 
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Stack
+            direction={{
+              xs: "column",
+              md: "row",
+            }}
+            spacing={2}
+            alignItems={{
+              xs: "stretch",
+              md: "center",
+            }}
+          >
+            <TextField
+              select
+              label="Lọc theo khóa học"
+              value={selectedCourseId}
+              onChange={(event) => {
+                setSelectedCourseId(event.target.value);
+              }}
+              sx={{
+                minWidth: {
+                  xs: "100%",
+                  md: 360,
+                },
+              }}
+            >
+              <MenuItem value="">Tất cả học viên</MenuItem>
+              <MenuItem value="NO_COURSE">Học viên chưa vào khóa</MenuItem>
+
+              {courses.map((course) => (
+                <MenuItem key={course.id} value={String(course.id)}>
+                  {course.name}
+                  {course.code ? ` - ${course.code}` : ""}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <Button
+              variant="outlined"
+              onClick={() => setSelectedCourseId("")}
+              disabled={!selectedCourseId}
+            >
+              Xóa lọc
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
+
       <GenericDataGrid<Student>
-        rows={students}
+        rows={filteredStudents}
         columns={columns}
         loading={loading}
         height={620}
@@ -945,68 +937,6 @@ export default function StudentsPage() {
                   required
                   placeholder="Ví dụ: 16.000.000"
                 />
-
-                <Stack
-                  direction={{
-                    xs: "column",
-                    sm: "row",
-                  }}
-                  spacing={2}
-                >
-                  <TextField
-                    label="Dự kiến đóng lần 1"
-                    value={
-                      formValues.first_payment_expected
-                        ? Number(
-                            formValues.first_payment_expected
-                          ).toLocaleString("vi-VN")
-                        : ""
-                    }
-                    onChange={(event) => {
-                      const rawValue = onlyNumber(event.target.value);
-
-                      setFormValues((prev) => ({
-                        ...prev,
-                        first_payment_expected: rawValue,
-                      }));
-
-                      setFormError(null);
-                    }}
-                    fullWidth
-                    placeholder="8.000.000"
-                  />
-
-                  <TextField
-                    label="Dự kiến đóng lần 2"
-                    value={
-                      formValues.second_payment_expected
-                        ? Number(
-                            formValues.second_payment_expected
-                          ).toLocaleString("vi-VN")
-                        : ""
-                    }
-                    onChange={(event) => {
-                      const rawValue = onlyNumber(event.target.value);
-
-                      setFormValues((prev) => ({
-                        ...prev,
-                        second_payment_expected: rawValue,
-                      }));
-
-                      setFormError(null);
-                    }}
-                    fullWidth
-                    placeholder="8.000.000"
-                  />
-                </Stack>
-
-                <Button
-                  variant="outlined"
-                  onClick={handleAutoSplitStudentTuition}
-                  disabled={!formValues.tuition_fee}
-                >
-                  Tự chia học phí thành 2 lần
-                </Button>
               </>
             )}
 

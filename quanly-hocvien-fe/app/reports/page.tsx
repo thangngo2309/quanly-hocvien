@@ -390,22 +390,6 @@ export default function ReportsPage() {
         renderCell: (params) => formatCurrency(params.row.tuition_fee),
       },
       {
-        field: "first_payment_paid",
-        headerName: "Đã thu lần 1",
-        width: 150,
-        align: "right",
-        headerAlign: "right",
-        renderCell: (params) => formatCurrency(params.row.first_payment_paid),
-      },
-      {
-        field: "second_payment_paid",
-        headerName: "Đã thu lần 2",
-        width: 150,
-        align: "right",
-        headerAlign: "right",
-        renderCell: (params) => formatCurrency(params.row.second_payment_paid),
-      },
-      {
         field: "total_paid",
         headerName: "Tổng đã thu",
         width: 160,
@@ -667,6 +651,531 @@ export default function ReportsPage() {
     if (method === "CASH") return "Tiền mặt";
     if (method === "BANK_TRANSFER") return "Chuyển khoản";
     return "";
+  };
+
+  const exportCourseFinancialReportWorkbook = async () => {
+    if (reportMode !== "COURSE" || !selectedCourseId || !selectedCourse) {
+      setSnackbar({
+        open: true,
+        message: "Vui lòng chọn khóa học trước khi export report",
+        severity: "error",
+      });
+      return;
+    }
+
+    if (!summary) {
+      setSnackbar({
+        open: true,
+        message: "Chưa có dữ liệu tổng hợp để export",
+        severity: "error",
+      });
+      return;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+
+    workbook.creator = "Quản lý học viên";
+    workbook.created = new Date();
+
+    /**
+     * SHEET 1: TỔNG HỢP
+     */
+    const summarySheet = workbook.addWorksheet("Tổng hợp", {
+      pageSetup: {
+        paperSize: 9,
+        orientation: "portrait",
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0,
+        margins: {
+          left: 0.3,
+          right: 0.3,
+          top: 0.5,
+          bottom: 0.5,
+          header: 0.2,
+          footer: 0.2,
+        },
+      },
+    });
+
+    summarySheet.mergeCells("A1:F1");
+    summarySheet.getCell("A1").value = "BÁO CÁO THU CHI KHÓA HỌC";
+    summarySheet.getCell("A1").font = {
+      name: "Times New Roman",
+      size: 16,
+      bold: true,
+    };
+    summarySheet.getCell("A1").alignment = {
+      horizontal: "center",
+      vertical: "middle",
+    };
+
+    summarySheet.mergeCells("A2:F2");
+    summarySheet.getCell("A2").value = selectedCourse.name;
+    summarySheet.getCell("A2").font = {
+      name: "Times New Roman",
+      size: 14,
+      bold: true,
+    };
+    summarySheet.getCell("A2").alignment = {
+      horizontal: "center",
+      vertical: "middle",
+    };
+
+    summarySheet.addRow([]);
+
+    const summaryRows = [
+      ["Mã khóa học", selectedCourse.code || ""],
+      ["Tổng học viên", Number(summary.total_students || 0)],
+      ["Tổng học phí phải thu", Number(summary.total_tuition || 0)],
+      ["Tổng thu của khóa", Number(summary.total_paid || 0)],
+      ["Tổng còn nợ", Number(summary.total_remaining || 0)],
+      ["Tổng chi của khóa", Number(summary.total_expense || 0)],
+      ["Lợi nhuận tạm tính", Number(summary.profit || 0)],
+    ];
+
+    summaryRows.forEach(([label, value]) => {
+      const row = summarySheet.addRow([label, value]);
+
+      row.getCell(1).font = {
+        name: "Times New Roman",
+        size: 12,
+        bold: true,
+      };
+
+      row.getCell(2).font = {
+        name: "Times New Roman",
+        size: 12,
+      };
+
+      row.getCell(1).alignment = {
+        vertical: "middle",
+      };
+
+      row.getCell(2).alignment = {
+        vertical: "middle",
+        horizontal: typeof value === "number" ? "right" : "left",
+      };
+
+      row.eachCell((cell: any) => {
+        cell.border = {
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
+        };
+      });
+
+      if (typeof value === "number" && label !== "Tổng học viên") {
+        row.getCell(2).numFmt = "#,##0";
+      }
+    });
+
+    summarySheet.columns = [{ width: 30 }, { width: 25 }];
+
+    /**
+     * SHEET 2: KHOẢN THU
+     */
+    const incomeSheet = workbook.addWorksheet("Khoản thu", {
+      pageSetup: {
+        paperSize: 9,
+        orientation: "landscape",
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0,
+        margins: {
+          left: 0.3,
+          right: 0.3,
+          top: 0.5,
+          bottom: 0.5,
+          header: 0.2,
+          footer: 0.2,
+        },
+      },
+    });
+
+    incomeSheet.mergeCells("A1:I1");
+    incomeSheet.getCell("A1").value = "DANH SÁCH KHOẢN THU HỌC PHÍ";
+    incomeSheet.getCell("A1").font = {
+      name: "Times New Roman",
+      size: 16,
+      bold: true,
+    };
+    incomeSheet.getCell("A1").alignment = {
+      horizontal: "center",
+      vertical: "middle",
+    };
+
+    incomeSheet.mergeCells("A2:I2");
+    incomeSheet.getCell("A2").value = `Khóa học: ${selectedCourse.name}`;
+    incomeSheet.getCell("A2").font = {
+      name: "Times New Roman",
+      size: 12,
+      italic: true,
+    };
+    incomeSheet.getCell("A2").alignment = {
+      horizontal: "center",
+      vertical: "middle",
+    };
+
+    incomeSheet.addRow([]);
+
+    const incomeHeaderRow = incomeSheet.addRow([
+      "STT",
+      "Học viên",
+      "Số điện thoại",
+      "Học phí",
+      "Tổng đã thu",
+      "Còn nợ",
+      "Trạng thái",
+    ]);
+
+    incomeHeaderRow.eachCell((cell: any) => {
+      cell.font = {
+        name: "Times New Roman",
+        size: 12,
+        bold: true,
+      };
+      cell.alignment = {
+        horizontal: "center",
+        vertical: "middle",
+        wrapText: true,
+      };
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE5E7EB" },
+      };
+    });
+
+    let totalIncome = 0;
+    let totalTuition = 0;
+    let totalRemaining = 0;
+
+    paymentStatusRows.forEach((item, index) => {
+      const tuitionFee = Number(item.tuition_fee || 0);
+      const firstPaid = Number(item.first_payment_paid || 0);
+      const secondPaid = Number(item.second_payment_paid || 0);
+      const totalPaid = Number(item.total_paid || 0);
+      const remainingAmount = Number(item.remaining_amount || 0);
+
+      totalTuition += tuitionFee;
+      totalIncome += totalPaid;
+      totalRemaining += remainingAmount;
+
+      const row = incomeSheet.addRow([
+        index + 1,
+        item.student?.full_name || "",
+        item.student?.phone || "",
+        tuitionFee,
+        firstPaid,
+        secondPaid,
+        totalPaid,
+        remainingAmount,
+        remainingAmount <= 0 ? "Đã đóng đủ" : "Chưa đóng đủ",
+      ]);
+
+      row.eachCell((cell: any) => {
+        cell.font = {
+          name: "Times New Roman",
+          size: 12,
+        };
+        cell.alignment = {
+          vertical: "middle",
+          wrapText: true,
+        };
+        cell.border = {
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
+        };
+      });
+
+      row.getCell(1).alignment = {
+        horizontal: "center",
+        vertical: "middle",
+      };
+
+      [4, 5, 6, 7, 8].forEach((cellIndex) => {
+        row.getCell(cellIndex).numFmt = "#,##0";
+        row.getCell(cellIndex).alignment = {
+          horizontal: "right",
+          vertical: "middle",
+        };
+      });
+    });
+
+    const incomeTotalRow = incomeSheet.addRow([
+      "",
+      "",
+      "TỔNG CỘNG",
+      totalTuition,
+      "",
+      "",
+      totalIncome,
+      totalRemaining,
+      "",
+    ]);
+
+    incomeTotalRow.eachCell((cell: any) => {
+      cell.font = {
+        name: "Times New Roman",
+        size: 12,
+        bold: true,
+      };
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+    });
+
+    [4, 7, 8].forEach((cellIndex) => {
+      incomeTotalRow.getCell(cellIndex).numFmt = "#,##0";
+      incomeTotalRow.getCell(cellIndex).alignment = {
+        horizontal: "right",
+        vertical: "middle",
+      };
+    });
+
+    incomeSheet.columns = [
+      { width: 6 },
+      { width: 26 },
+      { width: 16 },
+      { width: 15 },
+      { width: 15 },
+      { width: 15 },
+      { width: 16 },
+      { width: 16 },
+      { width: 18 },
+    ];
+
+    incomeSheet.views = [
+      {
+        state: "frozen",
+        ySplit: 4,
+      },
+    ];
+
+    /**
+     * SHEET 3: KHOẢN CHI
+     */
+    const expenseSheet = workbook.addWorksheet("Khoản chi", {
+      pageSetup: {
+        paperSize: 9,
+        orientation: "landscape",
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0,
+        margins: {
+          left: 0.3,
+          right: 0.3,
+          top: 0.5,
+          bottom: 0.5,
+          header: 0.2,
+          footer: 0.2,
+        },
+      },
+    });
+
+    expenseSheet.mergeCells("A1:J1");
+    expenseSheet.getCell("A1").value = "DANH SÁCH KHOẢN CHI";
+    expenseSheet.getCell("A1").font = {
+      name: "Times New Roman",
+      size: 16,
+      bold: true,
+    };
+    expenseSheet.getCell("A1").alignment = {
+      horizontal: "center",
+      vertical: "middle",
+    };
+
+    expenseSheet.mergeCells("A2:J2");
+    expenseSheet.getCell("A2").value = `Khóa học: ${selectedCourse.name}`;
+    expenseSheet.getCell("A2").font = {
+      name: "Times New Roman",
+      size: 12,
+      italic: true,
+    };
+    expenseSheet.getCell("A2").alignment = {
+      horizontal: "center",
+      vertical: "middle",
+    };
+
+    expenseSheet.addRow([]);
+
+    const expenseHeaderRow = expenseSheet.addRow([
+      "STT",
+      "Ngày chi",
+      "Loại chi phí",
+      "Loại",
+      "Học viên",
+      "Số điện thoại",
+      "Người nhận",
+      "Số tiền",
+      "Phương thức",
+      "Ghi chú",
+    ]);
+
+    expenseHeaderRow.eachCell((cell: any) => {
+      cell.font = {
+        name: "Times New Roman",
+        size: 12,
+        bold: true,
+      };
+      cell.alignment = {
+        horizontal: "center",
+        vertical: "middle",
+        wrapText: true,
+      };
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE5E7EB" },
+      };
+    });
+
+    let totalExpense = 0;
+
+    expenseDetailRows.forEach((item, index) => {
+      const amount = Number(item.amount || 0);
+      totalExpense += amount;
+
+      const row = expenseSheet.addRow([
+        index + 1,
+        formatDate(item.expense_date),
+        item.category_name || "",
+        item.target_type === "ENROLLMENT" ? "Theo học viên" : "Theo khóa",
+        item.student?.full_name || "",
+        item.student?.phone || "",
+        item.receiver_name || "",
+        amount,
+        getPaymentMethodLabel(item.payment_method),
+        item.note || "",
+      ]);
+
+      row.eachCell((cell: any) => {
+        cell.font = {
+          name: "Times New Roman",
+          size: 12,
+        };
+        cell.alignment = {
+          vertical: "middle",
+          wrapText: true,
+        };
+        cell.border = {
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
+        };
+      });
+
+      row.getCell(1).alignment = {
+        horizontal: "center",
+        vertical: "middle",
+      };
+
+      row.getCell(8).numFmt = "#,##0";
+      row.getCell(8).alignment = {
+        horizontal: "right",
+        vertical: "middle",
+      };
+    });
+
+    const expenseTotalRow = expenseSheet.addRow([
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "TỔNG CỘNG",
+      totalExpense,
+      "",
+      "",
+    ]);
+
+    expenseTotalRow.eachCell((cell: any) => {
+      cell.font = {
+        name: "Times New Roman",
+        size: 12,
+        bold: true,
+      };
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+    });
+
+    expenseTotalRow.getCell(8).numFmt = "#,##0";
+    expenseTotalRow.getCell(8).alignment = {
+      horizontal: "right",
+      vertical: "middle",
+    };
+
+    expenseSheet.columns = [
+      { width: 6 },
+      { width: 13 },
+      { width: 22 },
+      { width: 15 },
+      { width: 24 },
+      { width: 16 },
+      { width: 22 },
+      { width: 15 },
+      { width: 15 },
+      { width: 30 },
+    ];
+
+    expenseSheet.views = [
+      {
+        state: "frozen",
+        ySplit: 4,
+      },
+    ];
+
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    const fileName = `bao-cao-thu-chi-${safeFileName(
+      selectedCourse.name
+    )}.xlsx`;
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+
+    setSnackbar({
+      open: true,
+      message: "Download report thu chi khóa học thành công",
+      severity: "success",
+    });
   };
 
   const exportExpenseReceiptWorkbook = async () => {
@@ -1078,6 +1587,28 @@ export default function ReportsPage() {
                 ))}
               </TextField>
             )}
+
+            {reportMode === "COURSE" &&
+              selectedCourseId &&
+              selectedCourse &&
+              summary && (
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  mb={2}
+                  flexWrap="wrap"
+                  useFlexGap
+                >
+                  <Button
+                    variant="contained"
+                    startIcon={<DownloadIcon />}
+                    onClick={exportCourseFinancialReportWorkbook}
+                    disabled={loading}
+                  >
+                    Download report thu chi khóa học
+                  </Button>
+                </Stack>
+              )}
           </Stack>
         </CardContent>
       </Card>

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { TuitionPaymentsService } from './tuition-payments.service';
 import { CreateTuitionPaymentDto } from './dto/create-tuition-payment.dto';
 import { UpdateTuitionPaymentDto } from './dto/update-tuition-payment.dto';
@@ -13,8 +13,10 @@ export class TuitionPaymentsController {
   }
 
   @Get()
-  findAll() {
-    return this.tuitionPaymentsService.findAll();
+  findAll(@Query('course_id') courseId?: string) {
+    return this.tuitionPaymentsService.findAll({
+      courseId: courseId ? Number(courseId) : undefined,
+    });
   }
 
   @Get(':id')

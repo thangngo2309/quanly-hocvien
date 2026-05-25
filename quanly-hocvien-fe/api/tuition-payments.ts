@@ -1,7 +1,7 @@
-import { http } from './http';
-import { Enrollment } from './enrollments';
+import { http } from "./http";
+import { Enrollment } from "./enrollments";
 
-export type PaymentMethod = 'CASH' | 'BANK_TRANSFER';
+export type PaymentMethod = "CASH" | "BANK_TRANSFER";
 
 export type TuitionPayment = {
   id: number;
@@ -24,12 +24,20 @@ export type CreateTuitionPaymentPayload = {
   note?: string | null;
 };
 
-export type UpdateTuitionPaymentPayload =
-  Partial<CreateTuitionPaymentPayload>;
+export type UpdateTuitionPaymentPayload = Partial<CreateTuitionPaymentPayload>;
+
+export type TuitionPaymentFilter = {
+  courseId?: number;
+};
 
 export const tuitionPaymentsApi = {
-  async findAll() {
-    const res = await http.get<TuitionPayment[]>('/tuition-payments');
+  async findAll(filter?: { courseId?: number }) {
+    const res = await http.get<TuitionPayment[]>('/tuition-payments', {
+      params: {
+        course_id: filter?.courseId,
+      },
+    });
+  
     return res.data;
   },
 
@@ -39,21 +47,21 @@ export const tuitionPaymentsApi = {
   },
 
   async create(payload: CreateTuitionPaymentPayload) {
-    const res = await http.post<TuitionPayment>('/tuition-payments', payload);
+    const res = await http.post<TuitionPayment>("/tuition-payments", payload);
     return res.data;
   },
 
   async update(id: number, payload: UpdateTuitionPaymentPayload) {
     const res = await http.patch<TuitionPayment>(
       `/tuition-payments/${id}`,
-      payload,
+      payload
     );
     return res.data;
   },
 
   async remove(id: number) {
     const res = await http.delete<{ message?: string }>(
-      `/tuition-payments/${id}`,
+      `/tuition-payments/${id}`
     );
     return res.data;
   },
