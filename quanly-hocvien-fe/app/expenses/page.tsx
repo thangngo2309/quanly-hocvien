@@ -5,6 +5,8 @@ import {
   Alert,
   Box,
   Button,
+  Card,
+  CardContent,
   Chip,
   Dialog,
   DialogActions,
@@ -189,6 +191,8 @@ export default function ExpensesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
+  const [selectedCourseId, setSelectedCourseId] = useState("");
+
   const [formValues, setFormValues] =
     useState<ExpenseFormValues>(defaultFormValues);
 
@@ -225,7 +229,9 @@ export default function ExpensesPage() {
       setLoading(true);
 
       const [expenseData, enrollmentData, courseData] = await Promise.all([
-        expensesApi.findAll(),
+        expensesApi.findAll({
+          courseId: selectedCourseId ? Number(selectedCourseId) : undefined,
+        }),
         enrollmentsApi.findAll(),
         coursesApi.findAll(),
       ]);
@@ -242,7 +248,7 @@ export default function ExpensesPage() {
     } finally {
       setLoading(false);
     }
-  }, [showError]);
+  }, [selectedCourseId, showError]);
 
   useEffect(() => {
     loadData();
@@ -549,6 +555,54 @@ export default function ExpensesPage() {
           </>
         }
       />
+
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Stack
+            direction={{
+              xs: "column",
+              md: "row",
+            }}
+            spacing={2}
+            alignItems={{
+              xs: "stretch",
+              md: "center",
+            }}
+          >
+            <TextField
+              select
+              label="Lọc theo khóa học"
+              value={selectedCourseId}
+              onChange={(event) => {
+                setSelectedCourseId(event.target.value);
+              }}
+              sx={{
+                minWidth: {
+                  xs: "100%",
+                  md: 360,
+                },
+              }}
+            >
+              <MenuItem value="">Tất cả khóa học</MenuItem>
+
+              {courses.map((course) => (
+                <MenuItem key={course.id} value={String(course.id)}>
+                  {course.name}
+                  {course.code ? ` - ${course.code}` : ""}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <Button
+              variant="outlined"
+              onClick={() => setSelectedCourseId("")}
+              disabled={!selectedCourseId}
+            >
+              Xóa lọc
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
 
       <GenericDataGrid<Expense>
         rows={expenses}

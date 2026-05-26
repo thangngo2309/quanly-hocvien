@@ -860,8 +860,6 @@ export default function ReportsPage() {
 
     paymentStatusRows.forEach((item, index) => {
       const tuitionFee = Number(item.tuition_fee || 0);
-      const firstPaid = Number(item.first_payment_paid || 0);
-      const secondPaid = Number(item.second_payment_paid || 0);
       const totalPaid = Number(item.total_paid || 0);
       const remainingAmount = Number(item.remaining_amount || 0);
 
@@ -874,8 +872,6 @@ export default function ReportsPage() {
         item.student?.full_name || "",
         item.student?.phone || "",
         tuitionFee,
-        firstPaid,
-        secondPaid,
         totalPaid,
         remainingAmount,
         remainingAmount <= 0 ? "Đã đóng đủ" : "Chưa đóng đủ",
@@ -917,8 +913,6 @@ export default function ReportsPage() {
       "",
       "TỔNG CỘNG",
       totalTuition,
-      "",
-      "",
       totalIncome,
       totalRemaining,
       "",
@@ -938,7 +932,7 @@ export default function ReportsPage() {
       };
     });
 
-    [4, 7, 8].forEach((cellIndex) => {
+    [4, 5, 6].forEach((cellIndex) => {
       incomeTotalRow.getCell(cellIndex).numFmt = "#,##0";
       incomeTotalRow.getCell(cellIndex).alignment = {
         horizontal: "right",

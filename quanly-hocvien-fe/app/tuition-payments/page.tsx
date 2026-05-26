@@ -439,14 +439,14 @@ export default function TuitionPaymentsPage() {
         ),
       },
       {
-        field: "expected_amount",
-        headerName: "Dự kiến",
+        field: "tuition_fee",
+        headerName: "Tổng thu",
         width: 150,
         align: "right",
         headerAlign: "right",
         renderCell: (params) =>
           formatCurrency(
-            getExpectedAmount(params.row.enrollment, params.row.payment_round)
+            params.row.enrollment?.tuition_fee
           ),
       },
       {

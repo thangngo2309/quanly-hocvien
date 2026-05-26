@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 import { Enrollment } from 'src/enrollments/entities/enrollment.entity';
 import { Course } from 'src/courses/entities/course.entity';
 import { Expense } from './entities/expense.entity';
@@ -75,12 +75,32 @@ export class ExpensesService {
     return this.expenseRepo.save(expense);
   }
 
-  findAll() {
-    return this.expenseRepo.find({
-      relations: ['enrollment', 'enrollment.student', 'enrollment.course', 'course'],
-      order: { id: 'DESC' },
-    });
+  async findAll(filter?: { courseId?: number }) {
+  const qb = this.expenseRepo
+    .createQueryBuilder('expense')
+    .leftJoinAndSelect('expense.course', 'course')
+    .leftJoinAndSelect('expense.enrollment', 'enrollment')
+    .leftJoinAndSelect('enrollment.student', 'student')
+    .leftJoinAndSelect('enrollment.course', 'enrollmentCourse')
+    .orderBy('expense.expense_date', 'DESC')
+    .addOrderBy('expense.id', 'DESC');
+
+  if (filter?.courseId) {
+    qb.andWhere(
+      new Brackets(qb1 => {
+        qb1
+          .where('course.id = :courseId', {
+            courseId: filter.courseId,
+          })
+          .orWhere('enrollmentCourse.id = :courseId', {
+            courseId: filter.courseId,
+          });
+      }),
+    );
   }
+
+  return qb.getMany();
+}
 
   async findOne(id: number) {
     const expense = await this.expenseRepo.findOne({

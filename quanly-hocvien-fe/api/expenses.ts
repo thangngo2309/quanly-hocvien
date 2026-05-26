@@ -31,9 +31,18 @@ export type CreateExpensePayload = {
 
 export type UpdateExpensePayload = Partial<CreateExpensePayload>;
 
+export type ExpenseFilter = {
+  courseId?: number;
+};
+
 export const expensesApi = {
-  async findAll() {
-    const res = await http.get<Expense[]>('/expenses');
+  async findAll(filter?: ExpenseFilter) {
+    const res = await http.get<Expense[]>('/expenses', {
+      params: {
+        course_id: filter?.courseId,
+      },
+    });
+
     return res.data;
   },
 
