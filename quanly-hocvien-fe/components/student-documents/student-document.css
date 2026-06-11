@@ -1,7 +1,23 @@
-.student-doc-page {
+/* =========================
+   STUDENT DOCUMENT - SCREEN
+   ========================= */
+
+   .student-doc-toolbar {
+    width: 210mm;
+    margin: 16px auto;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  
+  .student-doc-print-root {
+    width: 100%;
+  }
+  
+  .student-doc-page {
     width: 210mm;
     min-height: 297mm;
-    margin: 0 auto;
+    margin: 0 auto 40px auto;
     padding: 12mm 14mm;
     background: #ffffff;
     color: #000000;
@@ -9,14 +25,6 @@
     font-size: 17px;
     line-height: 1.35;
     box-sizing: border-box;
-  }
-  
-  .student-doc-toolbar {
-    width: 210mm;
-    margin: 16px auto;
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
   }
   
   .student-doc-header {
@@ -56,8 +64,8 @@
     height: 40mm;
     object-fit: cover;
     object-position: center;
-    border: 1px solid #000;
-    background: #fff;
+    border: 1px solid #000000;
+    background: #ffffff;
   }
   
   .student-doc-line {
@@ -73,7 +81,7 @@
     display: inline-block;
     width: 15px;
     height: 15px;
-    border: 1px solid #000;
+    border: 1px solid #000000;
     margin: 0 20px 0 8px;
     vertical-align: middle;
   }
@@ -117,9 +125,50 @@
     text-align: center;
   }
   
+  /* =========================
+     PRINT PDF
+     ========================= */
+  
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+  
   @media print {
+    html,
     body {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 !important;
+      padding: 0 !important;
       background: #ffffff !important;
+      overflow: visible !important;
+    }
+  
+    body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  
+    body * {
+      visibility: hidden !important;
+    }
+  
+    .student-doc-print-root,
+    .student-doc-print-root * {
+      visibility: visible !important;
+    }
+  
+    .student-doc-print-root {
+      position: fixed !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 210mm !important;
+      min-height: 297mm !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #ffffff !important;
+      z-index: 999999 !important;
     }
   
     .student-doc-toolbar {
@@ -127,14 +176,25 @@
     }
   
     .student-doc-page {
-      margin: 0;
-      width: 210mm;
-      min-height: 297mm;
-      box-shadow: none;
+      width: 210mm !important;
+      min-height: 297mm !important;
+      margin: 0 !important;
+      padding: 12mm 14mm !important;
+      box-shadow: none !important;
+      border: none !important;
+      background: #ffffff !important;
+      color: #000000 !important;
+      font-family: "Times New Roman", Times, serif !important;
+      font-size: 17px !important;
+      line-height: 1.35 !important;
+      box-sizing: border-box !important;
+      page-break-after: avoid;
     }
   
-    @page {
-      size: A4;
-      margin: 0;
+    .student-doc-line,
+    .student-doc-sign-area,
+    .student-doc-sign-box {
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
   }
