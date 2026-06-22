@@ -8,11 +8,11 @@ services:
       - .env.prod
 
     environment:
-      DATABASE_HOST: "${DB_HOST}"
-      DATABASE_PORT: "${DB_PORT}"
-      DATABASE_USER: "${DB_USERNAME}"
-      DATABASE_PASSWORD: "${DB_PASSWORD}"
-      DATABASE_NAME: "${DB_NAME}"
+      DB_HOST: "${DB_HOST}"
+      DB_PORT: "${DB_PORT}"
+      DB_USERNAME: "${DB_USERNAME}"
+      DB_PASSWORD: "${DB_PASSWORD}"
+      DB_NAME: "${DB_NAME}"
       DB_ADMIN_DB: "${DB_ADMIN_DB:-postgres}"
 
     command:
@@ -74,12 +74,13 @@ services:
       NODE_ENV: production
       PORT: "${BE_PORT}"
 
-      DB_HOST: "${DB_HOST}"
-      DB_PORT: "${DB_PORT}"
-      DB_USERNAME: "${DB_USERNAME}"
-      DB_PASSWORD: "${DB_PASSWORD}"
-      DB_NAME: "${DB_NAME}"
-      DB_SYNC: "${DB_SYNC}"
+      # Đúng tên biến mà AppModule đang đọc
+      DATABASE_HOST: "${DB_HOST}"
+      DATABASE_PORT: "${DB_PORT}"
+      DATABASE_USER: "${DB_USERNAME}"
+      DATABASE_PASSWORD: "${DB_PASSWORD}"
+      DATABASE_NAME: "${DB_NAME}"
+      DATABASE_SYNC: "${DB_SYNC}"
 
       FRONTEND_URL: "${FRONTEND_URL}"
 
